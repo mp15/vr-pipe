@@ -356,7 +356,12 @@ class VRPipe::Parser::bamcheck with VRPipe::ParserRole {
                 $self->$method(\@items);
             }
         }
-        $self->_mean_coverage(sprintf("%0.2f", $cov_total / $cov_count));
+        if ( $cov_count == 0 ) {
+		$self->_mean_coverage("0.00");
+	}
+	else {
+        	$self->_mean_coverage(sprintf("%0.2f", $cov_total / $cov_count));
+	}
         
         if ($saw >= 22) {
             $self->_set_header_parsed();
