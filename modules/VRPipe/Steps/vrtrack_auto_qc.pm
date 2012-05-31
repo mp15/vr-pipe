@@ -302,6 +302,24 @@ class VRPipe::Steps::vrtrack_auto_qc extends VRPipe::Steps::vrtrack_update {
 		
 		$vrlane->genotype_status($gtype_results[0]);
 	    }
+
+	    # Add autoqc reasons to vrtrack
+	    my @autoqc_statuses = @{ $lane->autoqcs() };
+            if (@autoqc_statuses) {
+		foreach my $autoqc (@autoqc_statuses) {
+		    autoqc->current_run('0');
+		    autoqc->update();
+		}
+	    }
+
+	    foreach my $stat (@qc_status)
+	    {
+		my $autoqc_status = $vrlane->add_autoqc();
+		$autoqc_status->test($$stat{test});
+		$autoqc_status->result($$stat{status});
+		$autoqc_status->reason($$stat{reason});
+		$autoqc_status->update();
+	    }
 	    
 	    $vrlane->update();
 	});
