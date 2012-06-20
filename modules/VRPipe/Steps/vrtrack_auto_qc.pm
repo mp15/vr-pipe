@@ -304,7 +304,7 @@ class VRPipe::Steps::vrtrack_auto_qc extends VRPipe::Steps::vrtrack_update {
 	    }
 
 	    # Add autoqc reasons to vrtrack
-	    my @autoqc_statuses = @{ $lane->autoqcs() };
+	    my @autoqc_statuses = @{ $vrlane->autoqcs() };
             if (@autoqc_statuses) {
 		foreach my $autoqc (@autoqc_statuses) {
 		    autoqc->current_run('0');
