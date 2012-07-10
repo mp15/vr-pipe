@@ -67,7 +67,7 @@ class VRPipe::Steps::bam_calculate_bq with VRPipe::StepRole {
                                    version => VRPipe::StepCmdSummary->determine_version($samtools, '^Version: (.+)$'), 
                                    summary => "samtools calmd $calmd_opts \$bam_file \$reference_fasta > \$bq_bam_file"));
             
-            my $req = $self->new_requirements(memory => 3000, time => 2);
+            my $req = $self->new_requirements(memory => 4000, time => 2);
             foreach my $bam (@{$self->inputs->{bam_files}}) {
                 my $bam_base = $bam->basename;
                 my $bq_base = $bam_base;
