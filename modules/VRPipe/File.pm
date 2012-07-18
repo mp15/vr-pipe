@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 VRPipe::File - describe and work with files on a filesystem
@@ -19,8 +20,8 @@ pipeline step outputs. For example, if a step output is moved without B<VRPipe>
 knowing about it, and then a subsequent step (perhaps in a different pipeline)
 needs to use that file, B<VRPipe> will be forced to rerun the pipeline and
 steps necessary to regenerate the required file. However if C<move()> in this
-class is used to do the move, B<VRPipe> will know where the required file is now
-and use it from its new location.
+class is used to do the move, B<VRPipe> will know where the required file is
+now and use it from its new location.
 
 To avoid doing stats on disc to discover if a file exists (which can be very
 slow and expensive on high-performance filesystems), this metadata is stored in
@@ -71,70 +72,70 @@ class VRPipe::File extends VRPipe::Persistent {
     #     alone. However, with MySQL at least, the search on path is case
     #     insensitive, so we can't store two different files that only differ
     #     by case!
-    has 'path' => (is => 'rw',
-                   isa => AbsoluteFile, # we can't be nice and auto convert relative to absolute because alterations made by moose during construction do not affect what gets put in the db
-                   coerce => 1,
-                   traits => ['VRPipe::Persistent::Attributes'],
-                   is_key => 1,
+    has 'path' => (is      => 'rw',
+                   isa     => AbsoluteFile, # we can't be nice and auto convert relative to absolute because alterations made by moose during construction do not affect what gets put in the db
+                   coerce  => 1,
+                   traits  => ['VRPipe::Persistent::Attributes'],
+                   is_key  => 1,
                    handles => [qw(slurp stat lstat basename dir)]);
     
-    has 'type' => (is => 'rw',
-                   isa => FileType,
-                   coerce => 1,
-                   traits => ['VRPipe::Persistent::Attributes'],
+    has 'type' => (is      => 'rw',
+                   isa     => FileType,
+                   coerce  => 1,
+                   traits  => ['VRPipe::Persistent::Attributes'],
                    builder => '_filetype_from_extension');
     
-    has 'e' => (is => 'rw',
-                isa => 'Bool',
-                traits => ['VRPipe::Persistent::Attributes'],
+    has 'e' => (is      => 'rw',
+                isa     => 'Bool',
+                traits  => ['VRPipe::Persistent::Attributes'],
                 builder => 'check_file_existence_on_disc');
     
-    has 's' => (is => 'rw',
-                isa => IntSQL[16],
-                traits => ['VRPipe::Persistent::Attributes'],
+    has 's' => (is      => 'rw',
+                isa     => IntSQL [16],
+                traits  => ['VRPipe::Persistent::Attributes'],
                 builder => 'check_file_size_on_disc');
     
-    has 'mtime' => (is => 'rw',
-                    isa => Datetime,
-                    coerce => 1,
-                    traits => ['VRPipe::Persistent::Attributes'],
-                    builder => 'check_mtime_on_disc',
+    has 'mtime' => (is          => 'rw',
+                    isa         => Datetime,
+                    coerce      => 1,
+                    traits      => ['VRPipe::Persistent::Attributes'],
+                    builder     => 'check_mtime_on_disc',
                     is_nullable => 1);
     
-    has 'md5' => (is => 'rw',
-                  isa => Varchar[64],
-                  traits => ['VRPipe::Persistent::Attributes'],
+    has 'md5' => (is          => 'rw',
+                  isa         => Varchar [64],
+                  traits      => ['VRPipe::Persistent::Attributes'],
                   is_nullable => 1);
     
-    has '_lines' => (is => 'rw',
-                    isa => IntSQL[16],
-                    traits => ['VRPipe::Persistent::Attributes'],
-                    is_nullable => 1);
-    
-    has 'metadata' => (is => 'rw',
-                       isa => 'HashRef',
-                       traits => ['VRPipe::Persistent::Attributes'],
-                       default => sub { {} });
-    
-    has 'moved_to' => (is => 'rw',
-                       isa => Persistent,
-                       coerce => 1,
-                       traits => ['VRPipe::Persistent::Attributes'],
-                       belongs_to => 'VRPipe::File',
-                       is_nullable => 1);
-    
-    has 'parent' => (is => 'rw',
-                     isa => Persistent,
-                     coerce => 1,
-                     traits => ['VRPipe::Persistent::Attributes'],
-                     belongs_to => 'VRPipe::File',
+    has '_lines' => (is          => 'rw',
+                     isa         => IntSQL [16],
+                     traits      => ['VRPipe::Persistent::Attributes'],
                      is_nullable => 1);
     
-    has _opened_for_writing => (is => 'rw',
-                                isa => 'Bool',
+    has 'metadata' => (is      => 'rw',
+                       isa     => 'HashRef',
+                       traits  => ['VRPipe::Persistent::Attributes'],
+                       default => sub { {} });
+    
+    has 'moved_to' => (is          => 'rw',
+                       isa         => Persistent,
+                       coerce      => 1,
+                       traits      => ['VRPipe::Persistent::Attributes'],
+                       belongs_to  => 'VRPipe::File',
+                       is_nullable => 1);
+    
+    has 'parent' => (is          => 'rw',
+                     isa         => Persistent,
+                     coerce      => 1,
+                     traits      => ['VRPipe::Persistent::Attributes'],
+                     belongs_to  => 'VRPipe::File',
+                     is_nullable => 1);
+    
+    has _opened_for_writing => (is      => 'rw',
+                                isa     => 'Bool',
                                 default => 0);
     
-    has _opened => (is => 'rw',
+    has _opened => (is  => 'rw',
                     isa => 'Maybe[IO::File|FileHandle]');
     
     method check_file_existence_on_disc (File $path?) {
@@ -165,9 +166,9 @@ class VRPipe::File extends VRPipe::Persistent {
     method check_mtime_on_disc (File $path?) {
         $path ||= $self->path;
         
-        my $st = $path->lstat;
+        my $st    = $path->lstat;
         my $mtime = $st ? $st->mtime : 0;
-        my $dt = DateTime->from_epoch(epoch => $mtime);
+        my $dt    = DateTime->from_epoch(epoch => $mtime);
         
         return $dt;
     }
@@ -179,7 +180,7 @@ class VRPipe::File extends VRPipe::Persistent {
         $type = lc($type);
         if ($type eq 'gz') {
             $path =~ s/\.gz$//;
-            $type = VRPipe::File->get(path => $path)->type;
+            $type = VRPipe::File->create(path => $path)->type;
         }
         if (exists $file_type_map{$type}) {
             $type = $file_type_map{$type};
@@ -191,70 +192,76 @@ class VRPipe::File extends VRPipe::Persistent {
     __PACKAGE__->make_persistent();
     
     method add_metadata (HashRef $meta, Bool :$replace_data = 1) {
-        my $existing_meta = $self->metadata;
-        
-        # incase the input $meta was the same hashref as existing_meta, we need
-        # a new ref or update will do nothing
-        my $new_meta = {};
-        while (my ($key, $val) = each %$existing_meta) {
-            $new_meta->{$key} = $val;
-        }
-        
-        while (my ($key, $val) = each %$meta) {
-            # we don't always overwrite existing values
-            if ($replace_data) {
-                next unless (defined $val && "$val" ne "");
-            }
-            else {
-                next if exists $new_meta->{$key};
+        my $transaction = sub {
+            # select our row for update, to lock it
+            my ($locked_self) = $self->search({ id => $self->id }, { for => 'update' });
+            
+            my $existing_meta = $locked_self->metadata;
+            
+            # incase the input $meta was the same hashref as existing_meta, we need
+            # a new ref or update will do nothing
+            my $new_meta = {};
+            while (my ($key, $val) = each %$existing_meta) {
+                $new_meta->{$key} = $val;
             }
             
-            $new_meta->{$key} = $val;
-        }
-        
-        # *** there is an issue where if add_metadata is called more than once
-        # on the same file at the same time, only the last one might get its
-        # metadata stored...
-        $self->metadata($new_meta);
-        $self->update;
-        $self->touch if ($self->e);
+            while (my ($key, $val) = each %$meta) {
+                # we don't always overwrite existing values
+                if ($replace_data) {
+                    next unless (defined $val && "$val" ne "");
+                }
+                else {
+                    next if exists $new_meta->{$key};
+                }
+                
+                $new_meta->{$key} = $val;
+            }
+            
+            $locked_self->metadata($new_meta);
+            $locked_self->update;
+        };
+        $self->do_transaction($transaction, "Failed to add_metadata for file " . $self->path);
         
         my $resolve = $self->resolve;
         if ($resolve ne $self) {
             $resolve->add_metadata($meta, replace_data => $replace_data);
         }
+        $self->reselect_values_from_db;
     }
     
     method openr {
         return $self->open('<');
     }
+    
     method last_line {
         my $fh = $self->open('<', backwards => 1);
         my $line = <$fh>;
         close($fh);
         return $line;
     }
+    
     method openw {
         return $self->open('>');
     }
+    
     method open (OpenMode $mode, Str :$permissions?, Bool :$backwards?, Int :$retry = 0) {
         my $path = $self->path;
         
         $self->throw("Only modes <, > and >> are supported") unless $mode =~ /^(?:<|>)+$/;
         
-        if ($mode eq '<' && ! $self->e) {
+        if ($mode eq '<' && !$self->e) {
             $self->throw("File '$path' does not exist, so cannot be opened for reading");
         }
         
         my $fh;
-        my $type = VRPipe::FileType->create($self->type, {file => $path});
+        my $type = VRPipe::FileType->create($self->type, { file => $path });
         unless (defined $backwards) {
             $backwards = $type->read_backwards;
         }
         
         # set up the open command, handling compressed files automatically
         my $open_cmd = $path;
-        my $magic = `file -bi $path`;
+        my $magic    = `file -bi $path`;
         ($magic) = split(';', $magic);
         if ($magic eq 'application/octet-stream' || $path =~ /\.gz$/) {
             if ($mode eq '<') {
@@ -280,7 +287,7 @@ class VRPipe::File extends VRPipe::Persistent {
         }
         else {
             if ($mode eq '<' && $backwards) {
-                my $rs = $type->record_separator;
+                my $rs       = $type->record_separator;
                 my @frb_args = ($path);
                 push(@frb_args, $rs) if $rs;
                 tie(*BW, 'File::ReadBackwards', @frb_args);
@@ -307,10 +314,7 @@ class VRPipe::File extends VRPipe::Persistent {
             else {
                 # we think the file exists, so sleep a second and try again
                 sleep(1);
-                return $self->open($mode,
-                                   defined $permissions ? (permissions => $permissions) : (),
-                                   defined $backwards ? (backwards => $backwards) : (),
-                                   retry => ++$retry);
+                return $self->open($mode, defined $permissions ? (permissions => $permissions) : (), defined $backwards ? (backwards => $backwards) : (), retry => ++$retry);
             }
         }
         
@@ -320,7 +324,7 @@ class VRPipe::File extends VRPipe::Persistent {
     
     method close {
         my $fh = $self->_opened || return;
-        eval {CORE::close($fh);}; #*** without the eval we get [(in cleanup) Can't use an undefined value as a symbol reference at .../File/ReadBackwards.pm line 221.] ... need to fix without eval...
+        eval { CORE::close($fh); }; #*** without the eval we get [(in cleanup) Can't use an undefined value as a symbol reference at .../File/ReadBackwards.pm line 221.] ... need to fix without eval...
         $self->_opened(undef);
         if ($self->_opened_for_writing) {
             $self->update_stats_from_disc;
@@ -335,7 +339,7 @@ class VRPipe::File extends VRPipe::Persistent {
     }
     
     method remove {
-        my $path = $self->path;
+        my $path   = $self->path;
         my $worked = $self->path->remove;
         $self->update_stats_from_disc;
         if ($worked) {
@@ -346,10 +350,10 @@ class VRPipe::File extends VRPipe::Persistent {
         return $worked;
     }
     alias unlink => 'remove';
-    alias rm => 'remove';
-    
-=head2 move
+    alias rm     => 'remove';
 
+=head2 move
+ 
  Title   : move (alias mv)
  Usage   : $obj->move($dest);
  Function: Move this file to another path. dest receives $obj's metadata, and
@@ -361,9 +365,10 @@ class VRPipe::File extends VRPipe::Persistent {
            doing a copy, md5 check and then deletion of source
 
 =cut
+    
     method move (VRPipe::File $dest, Bool :$check_md5s = 0) {
         # have we already been moved there?
-        if (! $self->e && $dest->e && $self->moved_to->id == $dest->id) {
+        if (!$self->e && $dest->e && $self->moved_to->id == $dest->id) {
             return 1;
         }
         
@@ -398,9 +403,9 @@ class VRPipe::File extends VRPipe::Persistent {
         }
     }
     alias mv => 'move';
-    
-=head2 symlink
 
+=head2 symlink
+ 
  Title   : symlink
  Usage   : $obj->symlink($dest);
  Function: Create a soft symlink to this file at another path.
@@ -408,9 +413,10 @@ class VRPipe::File extends VRPipe::Persistent {
  Args    : VRPipe::File destination file
 
 =cut
+    
     method symlink (VRPipe::File $dest) {
-        my $sp = $self->path;
-        my $dp = $dest->path;
+        my $sp      = $self->path;
+        my $dp      = $dest->path;
         my $success = symlink($sp, $dp);
         
         # allow failures due to the symlink already existing
@@ -434,9 +440,9 @@ class VRPipe::File extends VRPipe::Persistent {
             $dest->update;
         }
     }
-    
-=head2 resolve
 
+=head2 resolve
+ 
  Title   : move (alias mv)
  Usage   : my $real_file = $obj->resolve;
  Function: If this file was created as a symlink (using VRPipe::File->symlink),
@@ -447,6 +453,7 @@ class VRPipe::File extends VRPipe::Persistent {
  Args    : n/a
 
 =cut
+    
     method resolve {
         my $links_resolved;
         my $parent = $self->parent;
@@ -468,9 +475,9 @@ class VRPipe::File extends VRPipe::Persistent {
         
         return $fully_resolved;
     }
-    
-=head2 copy
 
+=head2 copy
+ 
  Title   : copy (alias cp)
  Usage   : $obj->copy($dest);
  Function: Copy this file to another path, checking md5s to make sure the copy
@@ -479,9 +486,10 @@ class VRPipe::File extends VRPipe::Persistent {
  Args    : VRPipe::File source file, VRPipe::File destination file
 
 =cut
+    
     method copy (VRPipe::File $dest) {
-        my $sp = $self->path;
-        my $dp = $dest->path;
+        my $sp        = $self->path;
+        my $dp        = $dest->path;
         my $d_existed = $dest->e;
         
         # has it already been copied successfully?
@@ -519,16 +527,16 @@ class VRPipe::File extends VRPipe::Persistent {
     alias cp => 'copy';
     
     method update_stats_from_disc (PositiveInt :$retries = 1) {
-        my $current_s = $self->s;
+        my $current_s     = $self->s;
         my $current_mtime = $self->mtime;
-        my $path = $self->path;
+        my $path          = $self->path;
         $self->disconnect;
         
         my ($new_e, $new_s, $new_mtime);
         my $trys = 0;
         while (1) {
-            $new_e = $self->check_file_existence_on_disc($path);
-            $new_s = $self->check_file_size_on_disc($path);
+            $new_e     = $self->check_file_existence_on_disc($path);
+            $new_s     = $self->check_file_size_on_disc($path);
             $new_mtime = $self->check_mtime_on_disc($path);
             last if $new_s != $current_s;
             last if $current_mtime ne $new_mtime;
@@ -536,7 +544,7 @@ class VRPipe::File extends VRPipe::Persistent {
             sleep 1;
         }
         
-        if (! $new_s || $current_s != $new_s || $current_mtime ne $new_mtime) {
+        if (!$new_s || $current_s != $new_s || $current_mtime ne $new_mtime) {
             $self->_lines(undef);
             $self->e($new_e);
             $self->s($new_s);
@@ -558,18 +566,18 @@ class VRPipe::File extends VRPipe::Persistent {
         
         my $lines = $self->_lines;
         unless ($lines) {
-            my $ft = VRPipe::FileType->create($self->type, {file => $self->path});
+            my $ft = VRPipe::FileType->create($self->type, { file => $self->path });
             $lines = $ft->num_lines;
             $self->_lines($lines);
             $self->update;
         }
         
-        $lines || $self->throw("Failed to find any lines in ".$self->path.", even though it has size!");
+        $lines || $self->throw("Failed to find any lines in " . $self->path . ", even though it has size!");
         return $lines;
     }
     after _lines {
         my $resolve = $self->resolve;
-        if ($resolve ne $self) {
+        if ($resolve ne $self && defined $self->{_lines}) {
             $resolve->_lines($self->{_lines}); #*** to avoid recursion we access the self hash!! rework?...
             $resolve->update;
         }
@@ -579,7 +587,7 @@ class VRPipe::File extends VRPipe::Persistent {
         my $s = $self->s || return 0;
         
         my $records = 0;
-        my $ft = VRPipe::FileType->create($self->type, {file => $self->path});
+        my $ft = VRPipe::FileType->create($self->type, { file => $self->path });
         $records = $ft->num_records;
         
         return $records;
@@ -592,7 +600,7 @@ class VRPipe::File extends VRPipe::Persistent {
     }
     after md5 {
         my $resolve = $self->resolve;
-        if ($resolve ne $self) {
+        if ($resolve ne $self && defined $self->{md5}) {
             $resolve->md5($self->{md5}); #*** to avoid recursion we access the self hash!! rework?...
             $resolve->update;
         }
