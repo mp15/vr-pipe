@@ -131,8 +131,8 @@ class VRPipe::Steps::irods with VRPipe::StepRole {
     method get_file_md5 (ClassName|Object $self: Str :$file!, Str|File :$ichksum!) {
         my $md5 = `$ichksum $file`;
         chomp $md5;
-        $md5 =~ s/.*\s//;
-        return $md5;
+        $md5 =~ /([0-9a-f]{32})/;
+        return $1;
     }
     
     method get_file (ClassName|Object $self: Str :$source!, VRPipe::File :$dest_file!, Str|File :$iget!, Str|File :$ichksum!) {
@@ -144,7 +144,7 @@ class VRPipe::Steps::irods with VRPipe::StepRole {
         my $expected_md5 = $dest_file->metadata->{expected_md5} || $irodschksum;
         unless ($irodschksum eq $expected_md5) {
             $dest_file->unlink;
-            $self->throw("expected md5 checksum in metadata did not match md5 of $source in IRODS; aborted");
+            $self->throw("expected md5 checksum in metadata ($expected_md5) did not match md5 of $source in IRODS ($irodschksum); aborted");
         }
         
         # -K: checksum
