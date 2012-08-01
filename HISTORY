@@ -1,3 +1,17 @@
+0.89    Fixed critical bug in Submission reserved memory calculation that could
+        prevent certain pipelines from proceeding when a step ran out of memory.
+0.88    bam_to_fastq step can now take an option to allow it to not care about
+        keeping the forward and reverse fastq files "in-sync", which helps with
+        the SGA-related steps.
+0.87    vrpipe-db_upgrade no longer takes --from and --to options, but instead
+        will correctly upgrade the database from its current version to the
+        latest, avoiding user-error. Bug-fix for vrpipe-elements so that -f
+        works again.
+0.86    Minor bug fix for getting file md5s. When the system has created
+        symlinks (eg. vrpipe-output was used) and the source file of a symlink
+        is moved, all symlinks are automatically corrected. The LSF scheduler
+        now implements the cpus requirement. SGA steps bug fixed and now have
+        support for gzipped fastq files.
 0.85    bam_add_readgroup step now allows you to choose what metadata key SM is
         set from, eg. you could have it come from individual instead of sample
 0.84    Critical fix for the VRTrack datasource, so that it copes with metadata
