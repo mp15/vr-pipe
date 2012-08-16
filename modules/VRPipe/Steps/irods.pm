@@ -129,10 +129,12 @@ class VRPipe::Steps::irods with VRPipe::StepRole {
     }
     
     method get_file_md5 (ClassName|Object $self: Str :$file!, Str|File :$ichksum!) {
-        my $md5 = `$ichksum $file`;
-        chomp $md5;
-        $md5 =~ /([0-9a-f]{32})/;
-        return $1;
+        my $chksum = `$ichksum $file`;
+        my ($md5) = $chksum =~ m/\b([0-9a-f]{32})\b/i; # 32 char MD5 hex string
+        unless ($md5) {
+            $self->throw("Could not determine md5 of $file in IRODS ('$ichksum $file' returned '$chksum'; aborted");
+        }
+        return $md5;
     }
     
     method get_file (ClassName|Object $self: Str :$source!, VRPipe::File :$dest_file!, Str|File :$iget!, Str|File :$ichksum!) {
