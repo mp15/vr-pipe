@@ -18,14 +18,14 @@ ok my $pipeline      = VRPipe::Pipeline->create(name => 'test_pipeline'),   'abl
 ok my $link_pipeline = VRPipe::Pipeline->create(name => 'linked_pipeline'), 'able to get the linked_pipeline pipeline';
 
 my @s_names;
-foreach my $stepmember ($pipeline->steps) {
+foreach my $stepmember ($pipeline->step_members) {
     push(@s_names, $stepmember->step->name);
 }
 my @expected_base_step_names = qw(test_step_one test_step_two test_step_three test_step_four);
 is_deeply \@s_names, \@expected_base_step_names, 'the base test pipeline has the correct steps';
 
 my @l_names;
-foreach my $stepmember ($link_pipeline->steps) {
+foreach my $stepmember ($link_pipeline->step_members) {
     push(@l_names, $stepmember->step->name);
 }
 my @expected_link_step_names = qw(text_merge test_step_one);
@@ -252,6 +252,10 @@ ok handle_pipeline(@new_files), 'new merge files all exist after changing dataso
 my $element1 = VRPipe::DataElement->create(datasource => 2, result => { paths => [$base_files[2]->stringify] });
 my $element2 = VRPipe::DataElement->create(datasource => 3, result => { paths => [map { $_->stringify } @base_files[1, 5, 9]], group => '50' });
 is_deeply [$element1->withdrawn, $element2->withdrawn], [1, 1], 'elements correctly withdrawn after changing datasource';
+
+# test that we can make the dataelementstates of a given setup immutable, immune
+# to upstream changes in that the output files of the setup don't change
+#***
 
 # test that a child pipeline that deletes its input does not delete until the
 # parent has finished with that file

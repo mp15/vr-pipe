@@ -42,27 +42,10 @@ use VRPipe::Base;
 class VRPipe::Schedulers::local with VRPipe::SchedulerMethodsRole {
     use Config;
     use VRPipe::Persistent::Schema;
+    use VRPipe::Interface::CmdLine;
     my $deployment = VRPipe::Persistent::Schema->database_deployment;
     
-    my $ls_script = 'vrpipe-local_scheduler';
-    if ($deployment eq 'testing') {
-        # we might not have vrpipe-local_scheduler in our PATH, and the
-        # modules it needs might not be in our PERL5LIB, so allow
-        # us to still work if we're running from the git repo root
-        # dir (eg. during testing prior to an install). In fact, for
-        # testing purposes, we prefer this to some version of the
-        # files installed elsewhere.
-        my $local_script = file('scripts', 'vrpipe-local_scheduler');
-        my $modules_dir = dir('modules');
-        if (-x $local_script && -d $modules_dir) {
-            my $thisperl = $Config{perlpath};
-            if ($^O ne 'VMS') {
-                $thisperl .= $Config{_exe} unless $thisperl =~ m/$Config{_exe}$/i;
-            }
-            $ls_script = "$thisperl -I$modules_dir $local_script";
-        }
-    }
-    $ls_script .= ' --deployment ' . $deployment;
+    my $ls_script = VRPipe::Interface::CmdLine->vrpipe_script_command('vrpipe-local_scheduler', $deployment);
     
     method start_command {
         return "$ls_script start";
@@ -76,7 +59,7 @@ class VRPipe::Schedulers::local with VRPipe::SchedulerMethodsRole {
         return $ls_script;
     }
     
-    method submit_args (VRPipe::Requirements :$requirements!, File :$stdo_file!, File :$stde_file!, Str :$cmd!, VRPipe::PersistentArray :$array?) {
+    method submit_args (VRPipe::Requirements :$requirements!, Str|File :$stdo_file!, Str|File :$stde_file!, Str :$cmd!, VRPipe::PersistentArray :$array?) {
         my $array_def = '';
         my $output_string;
         if ($array) {
@@ -95,6 +78,10 @@ class VRPipe::Schedulers::local with VRPipe::SchedulerMethodsRole {
         return 'local';
     }
     
+    method queue_time (VRPipe::Requirements $requirements) {
+        return 1314000;
+    }
+    
     method switch_queue (PositiveInt $sid, Str $new_queue) {
         return;
     }
@@ -110,7 +97,7 @@ class VRPipe::Schedulers::local with VRPipe::SchedulerMethodsRole {
             return $sid;
         }
         else {
-            $self->throw("Failed to submit to scheduler");
+            $self->throw("Failed to submit to scheduler given command $cmd");
         }
     }
     
@@ -129,6 +116,20 @@ class VRPipe::Schedulers::local with VRPipe::SchedulerMethodsRole {
             sleep(1);
         }
         return 1;
+    }
+    
+    method all_status {
+        open(my $bfh, "$ls_script jobs |") || $self->warn("Could not call $ls_script jobs");
+        my %status = ();
+        if ($bfh) {
+            while (<$bfh>) {
+                if (/^(\d+)\s+\S+\s+(\S+)/) {
+                    $status{$1} = $2;
+                }
+            }
+            close($bfh);
+        }
+        return %status;
     }
     
     method sid_status (PositiveInt $sid, Int $aid) {
