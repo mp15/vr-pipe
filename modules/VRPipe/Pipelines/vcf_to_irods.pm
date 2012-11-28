@@ -1,15 +1,15 @@
 
 =head1 NAME
 
-VRPipe::Pipelines::rna_seq_map_gsnap - a pipeline
+VRPipe::Pipelines::vcf_to_irods - a pipeline
 
 =head1 DESCRIPTION
 
-RNA-Seq Mapping Pipeline employing GSNAP.
+Pipeline to add vr-pipe metadata to vcf files, and then add them into irods with the required metadata.
 
 =head1 AUTHOR
 
-NJWalker <nw11@sanger.ac.uk>.
+Chris Joyce <cj5@sanger.ac.uk>.
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -33,34 +33,30 @@ this program. If not, see L<http://www.gnu.org/licenses/>.
 
 use VRPipe::Base;
 
-class VRPipe::Pipelines::rna_seq_map_gsnap with VRPipe::PipelineRole {
+class VRPipe::Pipelines::vcf_to_irods with VRPipe::PipelineRole {
     method name {
-        return 'rna_seq_map_gsnap';
+        return 'vcf_to_irods';
     }
     
     method description {
-        return 'RNA-Seq Mapping Pipeline employing GSNAP.';
+        return 'Add vcf files with metadata to irods';
     }
     
     method step_names {
         (
-            'fastqc_quality_report', # 1
-            'gmap_build',            # 2
-            'trimmomatic',           # 3
-            'gsnap',                 # 4
-            'sam_sort',              # 5
-            'sam_mark_duplicates',   # 6
+            'vcf_metadata', #1
+            'vcf_to_irods', #2
         );
     }
     
     method adaptor_definitions {
         (
-            { from_step => 0, to_step => 1, to_key   => 'fastq_files' },
-            { from_step => 0, to_step => 3, to_key   => 'fastq_files' },
-            { from_step => 3, to_step => 4, from_key => 'trimmed_files', to_key => 'fastq_files' },
-            { from_step => 4, to_step => 5, from_key => 'gsnap_uniq_sam', to_key => 'sam_file' },
-            { from_step => 5, to_step => 6, from_key => 'sorted_sam', to_key => 'sam_files' }
+            { from_step => 0, to_step => 1, to_key => 'vcf_files' },
+            { from_step => 0, to_step => 2, to_key => 'vcf_files' },
+
         );
     }
+    
 }
+
 1;
