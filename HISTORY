@@ -1,3 +1,19 @@
+0.123   New elements for a setup now get triggered soon after the datasource
+        changes, instead of the next time the setup has 0 unfinished
+        submissions, resulting in a large speed-up potential.
+        Some critical database queries have potentially been optimised to
+        hopefully avoid overloading the database when many jobs are running at
+        once.
+        Fixes for the bam_spatial_filter and rna_seq_map_gsnap pipelines.
+0.122   Fixed repeated emailing of the same setup problem.
+0.121   Potential fix for complex vrpipe datasources that fail to update as
+        soon as they should. bam_spatial_filter pipeline fixes. Reduced chances
+        of a setup not doing work when it should be doing work. Submission
+        handlers that are no longer needed are now killed as soon as possible,
+        providing a large efficiency improvement.
+0.120   Potential fix to stop vrpipe-server silently stalling. Errors
+        encountered during a Step post_process are now emailed out. New
+        bam_spatial_filter pipeline.
 0.119   Critical fix for changes in previous version. Critical fix for
         bam_split_by_region step, so it works with bams with arbitrary
         split_sequence metadata. vrpipe-status stall messaging improved
