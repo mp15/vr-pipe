@@ -1,3 +1,16 @@
+0.136   Reduces database contention whilst selecting submissions to run, which
+        should increase speed and help avoid running out of database
+        connections.
+0.135   Critical fix to avoid 0.133's fix from locking up the database for too
+        long (and to unstick even more pending submissions).
+0.134   Fixed bug that meant submissions were queued to run and reported on in
+        vrpipe-status even if they were for dataelements that were withdrawn,
+        which was very wasteful and confusing.
+0.133   Critical fix for submissions that pended forever.
+0.132   Emergency change in behaviour when the log file can not be locked:
+        instead of emailing the admin, the log file is simply deleted. This is
+        to prevent thousands of email messages being sent and also should allow
+        subsequent log messages to be written to disc successfully.
 0.131   Fixed VRPipe's internal confirmation of the existance of step output
         files so that it is no longer restarts jobs if the output file had
         previously beem moved elsewhere and deleted.
