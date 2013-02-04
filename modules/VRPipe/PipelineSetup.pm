@@ -32,7 +32,7 @@ Sendu Bala <sb10@sanger.ac.uk>.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2011 Genome Research Limited.
+Copyright (c) 2011-2013 Genome Research Limited.
 
 This file is part of VRPipe.
 
@@ -196,21 +196,28 @@ class VRPipe::PipelineSetup extends VRPipe::Persistent {
         # (single) elementstate for the supplied dataelement
         my $pager;
         if ($dataelement) {
+            $self->debug("trigger on single de for setup " . $self->id);
             $pager = VRPipe::DataElementState->search_paged({ pipelinesetup => $setup_id, dataelement => $dataelement->id, completed_steps => $first_step_only ? 0 : { '<', $num_steps }, 'dataelement.withdrawn' => 0 }, { prefetch => 'dataelement' });
         }
         else {
             $pager = $datasource->incomplete_element_states($self, prepare => $prepare_elements, only_not_started => $first_step_only);
+            $self->debug("trigger on all for setup " . $self->id . ", got " . $pager->total_entries . " incomplete element states");
         }
         return unless $pager; #*** is it ever an error to have no pager?
         
         my $error_message;
+        my $max_redos = $num_steps;
         while (my $estates = $pager->next) {
-            foreach my $estate (@$estates) {
+            my $redos = 0;
+            ESTATE: foreach my $estate (@$estates) {
                 my $element         = $estate->dataelement;
                 my $completed_steps = $estate->completed_steps;
                 next if $completed_steps == $num_steps;
                 
+                $self->debug("working on estate " . $estate->id);
+                
                 my %previous_step_outputs;
+                my $sm_error;
                 foreach my $member (@step_members) {
                     my $step_number = $member->step_number;
                     my $state       = VRPipe::StepState->create(
@@ -219,42 +226,67 @@ class VRPipe::PipelineSetup extends VRPipe::Persistent {
                         pipelinesetup => $self
                     );
                     
+                    $self->debug("working on stepstate " . $state->id);
+                    
                     my $step = $member->step(previous_step_outputs => \%previous_step_outputs, step_state => $state);
                     if ($state->complete) {
                         $self->_complete_state($step, $state, $step_number, $pipeline, \%previous_step_outputs, $estate);
+                        $self->debug("completed");
                         next;
                     }
                     
+                    undef $sm_error;
                     my $error_ident = 'step ' . $step->name . " for setup $setup_id (dataelement " . $element->id . ', stepstate ' . $state->id . ')';
                     
                     # have we previously done the dispatch dance and are
                     # currently waiting on submissions to complete?
                     my @submissions = $state->submissions;
                     if (@submissions) {
+                        $self->debug("had submissions");
                         my $unfinished = VRPipe::Submission->search({ '_done' => 0, stepstate => $state->submission_search_id });
                         unless ($unfinished) {
-                            my $ok;
-                            eval { # (try catch not used because stupid perltidy is stupid)
-                                $ok = $step->post_process();
-                            };
+                            # check we're not the victim of a race condition and
+                            # that we still have submissions
+                            my $done = VRPipe::Submission->search({ '_done' => 1, stepstate => $state->submission_search_id });
+                            my $total = VRPipe::Submission->search({ stepstate => $state->submission_search_id });
                             
-                            if ($@ && !$error_message) {
-                                $error_message = "When trying to post process $error_ident we hit the following error:\n$@";
-                            }
-                            
-                            if ($ok) {
-                                # we just completed all the submissions from a previous parse
-                                $self->_complete_state($step, $state, $step_number, $pipeline, \%previous_step_outputs, $estate);
-                                next;
-                            }
-                            else {
-                                # we warn instead of throw, because the step may
-                                # have discovered its output files are missing
-                                # and restarted itself
-                                unless ($error_message) {
-                                    $error_message = "When trying to post process $error_ident, the submissions completed, but post processing failed";
+                            if ($total && $done == $total) {
+                                # run post_process
+                                my $pp_error;
+                                $self->debug("will post_process");
+                                eval { # (try catch not used because stupid perltidy is stupid)
+                                    $pp_error = $step->post_process();
+                                };
+                                
+                                if ($@ && !$pp_error) {
+                                    $pp_error = $@;
+                                }
+                                
+                                unless ($pp_error) {
+                                    # we just completed all the submissions from a
+                                    # previous parse
+                                    $self->_complete_state($step, $state, $step_number, $pipeline, \%previous_step_outputs, $estate);
+                                    $self->debug("completed on pre-existing subs");
+                                    next;
+                                }
+                                else {
+                                    # we warn instead of throw, because the step may
+                                    # have discovered its output files are missing
+                                    # and restarted itself
+                                    $sm_error = "When trying to post process $error_ident after the submissions completed we hit the following error:\n$pp_error";
+                                    $self->debug($sm_error);
                                 }
                             }
+                            elsif (!$total) {
+                                $sm_error = "When dealing with what we thought were the completed submissions of $error_ident, the submissions vanished!";
+                                $self->debug($sm_error);
+                            }
+                            else {
+                                $self->debug("have subs but still running/failed");
+                            }
+                            # else we have subs but they're either still running
+                            # or they've failed; either way a handler should
+                            # deal with them
                         }
                         # else we have $unfinished unfinished submissions from a
                         # previous parse and are still running... unless we have
@@ -264,31 +296,42 @@ class VRPipe::PipelineSetup extends VRPipe::Persistent {
                             my $other_state = $state->same_submissions_as;
                             my $other_setup = $other_state->pipelinesetup;
                             unless ($other_setup->active) {
-                                $error_message = "The submissions for $error_ident were first created by setup " . $other_setup->id . ", but that setup is no longer active, so $setup_id is stalled!";
+                                $sm_error = "The submissions for $error_ident were first created by setup " . $other_setup->id . ", but that setup is no longer active, so $setup_id is stalled!";
+                                $self->debug($sm_error);
+                            }
+                            else {
+                                $self->debug("same submissions as");
                             }
                             # else, is it safe to assume the submissions of this
                             # other setup are really running?
+                        }
+                        else {
+                            $self->debug("had submissions and I guess they're running normally");
+                            last;
                         }
                     }
                     else {
                         # this is the first time we're looking at this step for
                         # this data member for this pipelinesetup
-                        my $completed;
+                        my $parse_return;
+                        $self->debug("will parse");
                         try {
-                            $completed = $step->parse();
+                            $parse_return = $step->parse();
                         }
                         catch ($err) {
-                            unless ($error_message) {
-                                $error_message = "When trying to parse $error_ident we hit the following error:\n$err";
-                            }
-                            last;
+                            $parse_return = $err;
                         }
                         
-                        if ($completed) {
-                            # on instant complete, parse calls post_process
-                            # itself and only returns true if that was
-                            # successfull
+                        # $parse_return is 0 if we dispatched something, undef
+                        # if we completed instantly and already ran post_process
+                        # successfully, or is an error string
+                        if ($parse_return) {
+                            $sm_error = "When trying to parse $error_ident we hit the following error:\n$parse_return";
+                            $self->debug($sm_error);
+                        }
+                        elsif (!defined $parse_return) {
                             $self->_complete_state($step, $state, $step_number, $pipeline, \%previous_step_outputs, $estate);
+                            $self->debug("instant complete after parse");
                             next;
                         }
                         else {
@@ -323,10 +366,10 @@ class VRPipe::PipelineSetup extends VRPipe::Persistent {
                                     # the same as the other other stepstate's
                                     $state->same_submissions_as($same_as_us);
                                     $state->update;
+                                    $self->debug("same subs as " . $same_as_us->id);
                                     
-                                    # now redo the loop; we probably already
-                                    # completed this step
-                                    redo;
+                                    # (now we'll redo the loop; we probably
+                                    # already completed this step)
                                 }
                                 else {
                                     # create new submissions for the relevant
@@ -341,6 +384,8 @@ class VRPipe::PipelineSetup extends VRPipe::Persistent {
                                         my ($cmd, $reqs, $job_args) = @$arrayref;
                                         my $sub = VRPipe::Submission->create(job => VRPipe::Job->create(dir => $output_root, $job_args ? (%{$job_args}) : (), cmd => $cmd), stepstate => $state->submission_search_id, requirements => $reqs);
                                     }
+                                    $self->debug("created new subs");
+                                    last;
                                 }
                             }
                             else {
@@ -352,11 +397,23 @@ class VRPipe::PipelineSetup extends VRPipe::Persistent {
                         }
                     }
                     
-                    last;
+                    # if we got here we might have encountered some problem that
+                    # fixed itself, so we'll try redoing the loop
+                    $redos++;
+                    if ($redos <= $max_redos) {
+                        $self->debug("redo");
+                        redo ESTATE;
+                    }
+                    else {
+                        $error_message ||= $sm_error;
+                        $self->debug("last");
+                        last;
+                    }
                 }
             }
         }
         
+        $self->debug("trigger returning");
         return $error_message;
     }
     
