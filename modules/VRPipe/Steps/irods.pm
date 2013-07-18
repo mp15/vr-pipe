@@ -142,7 +142,7 @@ class VRPipe::Steps::irods with VRPipe::StepRole {
     method get_file (ClassName|Object $self: Str :$source!, VRPipe::File :$dest_file!, Str|File :$iget!, Str|File :$ichksum!) {
         my $dest = $dest_file->path;
         $dest_file->disconnect;
-        
+       
         # before we go fetch a file, check the md5 matches what we're expecting
         my $irodschksum = $self->get_file_md5(file => $source, ichksum => $ichksum);
         my $expected_md5 = $dest_file->metadata->{expected_md5} || $irodschksum;
@@ -151,6 +151,15 @@ class VRPipe::Steps::irods with VRPipe::StepRole {
             $self->throw("expected md5 checksum in metadata ($expected_md5) did not match md5 of $source in IRODS ($irodschksum); aborted");
         }
         
+        # check we've not downloaded it already
+        if ( -e $dest ) {
+            my $already_got_it = $dest_file->verify_md5($dest, $expected_md5);
+            if ( $already_got_it ) {
+                $dest_file->update_stats_from_disc;
+                chmod 0664, $dest;
+                return;
+            }
+        }
         # -K: checksum
         # -Q: use UDP rather than TCP
         # -f: force overwrite
